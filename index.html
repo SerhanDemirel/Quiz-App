@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Application</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: #fff;
+        }
+        .quiz-container {
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            max-width: 700px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            color: #333;
+        }
+        .question-counter {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .question-text {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .answer-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .answer-section button {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+        .answer-section button:hover {
+            background: #45a049;
+        }
+        .score-section {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+        button.next-button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 18px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button.next-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div id="quiz"></div>
+    </div>
+
+    <script>
+        const fetchQuestions = async () => {
+            const url = "https://opentdb.com/api.php?amount=10&category=9&type=multiple";
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return data.results;
+            } catch (error) {
+                console.error("Failed to fetch questions", error);
+                return [];
+            }
+        };
+
+        const quizContainer = document.getElementById('quiz');
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let totalQuestions = 0;
+
+        const showQuestion = (question) => {
+            quizContainer.innerHTML = `
+                <div class="question-counter">Question ${currentQuestionIndex + 1} of ${questions.length}</div>
+                <div class="question-text">${question.question}</div>
+                <div class="answer-section">
+                    ${[...question.incorrect_answers, question.correct_answer]
+                        .sort(() => Math.random() - 0.5)
+                        .map((answer, index) => `<button onclick="checkAnswer('${answer}', '${question.correct_answer}')">${answer}</button>`)
+                        .join('')}
+                </div>
+            `;
+        };
+
+        const checkAnswer = (selectedAnswer, correctAnswer) => {
+            if (selectedAnswer === correctAnswer) {
+                score += 10;
+            }
+            currentQuestionIndex++;
+            totalQuestions++;
+
+            if (currentQuestionIndex < questions.length) {
+                showQuestion(questions[currentQuestionIndex]);
+            } else {
+                if (totalQuestions % 10 === 0) {
+                    showIntermediateScore();
+                } else {
+                    fetchNewQuestions();
+                }
+            }
+        };
+
+        const showIntermediateScore = () => {
+            quizContainer.innerHTML = `<div class="score-section">You have completed 10 questions. Your score is: ${score}</div>
+            <button class="next-button" onclick="fetchNewQuestions()">Next 10 Questions</button>`;
+        };
+
+        const fetchNewQuestions = async () => {
+            currentQuestionIndex = 0;
+            const newQuestions = await fetchQuestions();
+            if (newQuestions.length > 0) {
+                questions = newQuestions;
+                showQuestion(questions[currentQuestionIndex]);
+            } else {
+                quizContainer.innerHTML = "Failed to load new questions. Please try again later.";
+            }
+        };
+
+        const startQuiz = async () => {
+            questions = await fetchQuestions();
+            if (questions.length > 0) {
+                showQuestion(questions[currentQuestionIndex]);
+            } else {
+                quizContainer.innerHTML = "Failed to load questions. Please try again later.";
+            }
+        };
+
+        startQuiz();
+    </script>
+</body>
+</html>
